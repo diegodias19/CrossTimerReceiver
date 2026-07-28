@@ -17,9 +17,9 @@ function atualizarTela() {
     }
 }
 
-// Escuta as mensagens enviadas pelo celular
+// Ouve o comando "START", "PAUSE" ou "RESET" enviado pelo Android
 context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
-    const comando = event.data; // Recebe "START", "PAUSE" ou "RESET"
+    const comando = event.data;
 
     if (comando === 'START') {
         if (!timer) {
@@ -46,5 +46,4 @@ context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
 const options = new cast.framework.CastReceiverOptions();
 context.start(options);
 
-// Garante a tela zerada no padrão 00:00 assim que o Web Receiver abre
 atualizarTela();
