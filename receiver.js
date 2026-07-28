@@ -17,9 +17,19 @@ function atualizarTela() {
     }
 }
 
-// Ouve o comando "START", "PAUSE" ou "RESET" enviado pelo Android
+function logNaTV(mensagem) {
+    const debugDiv = document.getElementById('debug-log');
+    if (debugDiv) {
+        debugDiv.textContent = mensagem;
+    }
+}
+
+// Escuta as mensagens enviadas pelo Android
 context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
-    const comando = event.data;
+    const comando = event.data; // Ex: "START", "PAUSE", "RESET"
+    
+    // Escreve na TV o comando que acabou de chegar do celular!
+    logNaTV(`Recebido: "${comando}"`);
 
     if (comando === 'START') {
         if (!timer) {
@@ -47,3 +57,4 @@ const options = new cast.framework.CastReceiverOptions();
 context.start(options);
 
 atualizarTela();
+logNaTV("Receiver pronto e escutando!");
