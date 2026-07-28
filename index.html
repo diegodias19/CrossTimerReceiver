@@ -2,21 +2,41 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CrossTimer Receiver</title>
 
-    <script
-        type="text/javascript"
-        src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js">
-    </script>
+    <!-- Google Cast SDK -->
+    <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+
+    <!-- Fonte estilo Relógio Digital (Roboto Mono) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@700&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <div id="mensagem">Rara eu te amo</div>
+<body class="status-ready">
 
-    <div id="contador">00:00</div>
-<div id="debug-log" style="color: yellow; font-size: 30px; margin-top: 20px; font-family: monospace;">Aguardando mensagens...</div>
+    <div class="container">
+        <!-- Nome da Modalidade (EMOM, AMRAP, TABATA) -->
+        <div id="workout-type" class="workout-type">CROSSTIMER</div>
+
+        <!-- Timer Gigante -->
+        <div id="timer-display" class="timer-display">00:00</div>
+
+        <!-- Painel de Informações Secundárias (Rounds, Rest, etc) -->
+        <div class="info-panel">
+            <div id="round-info" class="info-box">
+                <span class="info-label">ROUND</span>
+                <span id="round-value" class="info-value">--</span>
+            </div>
+            <div id="status-info" class="info-box">
+                <span class="info-label">STATUS</span>
+                <span id="status-value" class="info-value">PRONTO</span>
+            </div>
+        </div>
+    </div>
+
     <script src="receiver.js"></script>
-
 </body>
 </html>
