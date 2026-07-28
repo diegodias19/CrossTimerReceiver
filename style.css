@@ -5,7 +5,7 @@
 }
 
 body {
-    background-color: #0d0d0d;
+    background-color: #0a0a0a; /* Preto Box */
     color: #ffffff;
     font-family: 'Montserrat', sans-serif;
     height: 100vh;
@@ -14,43 +14,68 @@ body {
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    transition: background-color 0.5s ease;
+    transition: background-color 0.5s ease, border-color 0.5s ease;
 }
 
-/* CORES DE ESTADO (Muda o fundo/detalhes dinamicamente) */
-body.status-ready { background-color: #0f172a; } /* Azul Escuro */
-body.status-prep { background-color: #854d0e; }  /* Amarelo/Laranja (Preparação) */
-body.status-work { background-color: #14532d; }  /* Verde (Trabalho/Work) */
-body.status-rest { background-color: #7f1d1d; }  /* Vermelho (Descanso/Rest) */
+/* ESTADOS DE TREINO (Ajustados no padrão Preto/Laranja) */
+body.status-ready { 
+    background-color: #0a0a0a; 
+} 
+
+body.status-prep { 
+    background-color: #1c1300; /* Preto com tom Amarelo/Âmbar */
+}  
+
+body.status-work { 
+    background-color: #270e00; /* Fundo bem escuro com o temporizador e detalhes em Laranja Neon */
+}  
+
+body.status-rest { 
+    background-color: #1f0505; /* Fundo tom de Descanso (Vermelho escuro) */
+}  
 
 .container {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 90vw;
-    height: 90vh;
+    width: 92vw;
+    height: 92vh;
 }
 
+/* Título da Modalidade (EMOM, AMRAP, etc) */
 .workout-type {
     font-size: 5vw;
     font-weight: 900;
-    letter-spacing: 0.2rem;
+    letter-spacing: 0.25rem;
     text-transform: uppercase;
-    color: #f8fafc;
+    color: #FF6B00; /* Laranja da Marca */
     margin-bottom: -1vw;
-    text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    text-shadow: 0 0 20px rgba(255, 107, 0, 0.4);
 }
 
+/* Timer Gigante Digital */
 .timer-display {
     font-family: 'Roboto Mono', monospace;
     font-size: 26vw;
     font-weight: 700;
-    line-height: 0.9;
+    line-height: 0.85;
     color: #ffffff;
-    text-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+    text-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
 }
 
+/* Ajuste de cor do timer no WORK para destacar em Laranja */
+body.status-work .timer-display {
+    color: #FF6B00;
+    text-shadow: 0 0 30px rgba(255, 107, 0, 0.6);
+}
+
+body.status-rest .timer-display {
+    color: #EF4444; /* Vermelho no descanso */
+    text-shadow: 0 0 30px rgba(239, 68, 68, 0.6);
+}
+
+/* Cards Inferiores */
 .info-panel {
     display: flex;
     gap: 4vw;
@@ -58,25 +83,39 @@ body.status-rest { background-color: #7f1d1d; }  /* Vermelho (Descanso/Rest) */
 }
 
 .info-box {
-    background: rgba(0, 0, 0, 0.4);
-    padding: 1.5vw 3vw;
-    border-radius: 1vw;
+    background: #141414;
+    padding: 1.5vw 3.5vw;
+    border-radius: 1.2vw;
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 20vw;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    min-width: 22vw;
+    border: 2px solid #262626;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+/* Borda Laranja no WORK */
+body.status-work .info-box {
+    border-color: #FF6B00;
 }
 
 .info-label {
-    font-size: 1.5vw;
-    color: #94a3b8;
+    font-size: 1.4vw;
+    color: #a3a3a3;
     font-weight: 800;
-    letter-spacing: 0.1rem;
+    letter-spacing: 0.15rem;
 }
 
 .info-value {
     font-size: 4vw;
     font-weight: 900;
     color: #ffffff;
+}
+
+body.status-work #status-value {
+    color: #FF6B00;
+}
+
+body.status-rest #status-value {
+    color: #EF4444;
 }
