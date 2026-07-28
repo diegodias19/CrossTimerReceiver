@@ -1,14 +1,44 @@
 const context = cast.framework.CastReceiverContext.getInstance();
-
-// Definimos o mesmo namespace que usaremos no Android
 const CUSTOM_NAMESPACE = 'urn:x-cast:br.com.diego.crosstimer';
 
-// Escuta mensagens recebidas no nosso namespace
-context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
-    // event.data conterá a mensagem enviada pelo Android (ex: "10" ou JSON)
+let segundos = 0;
+let timer = null;
+
+function formatarTempo(sec) {
+    const min = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(min).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function atualizarTela() {
     const contadorDiv = document.getElementById('contador');
     if (contadorDiv) {
-        contadorDiv.textContent = event.data;
+        contadorDiv.textContent = formatarTempo(segundos);
+    }
+}
+
+context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
+    const comando = event.data; // Recebe "START", "PAUSE" ou "RESET"
+
+    if (comando === 'START') {
+        if (!timer) {
+            timer = setInterval(() => {
+                segundos++;
+                atualizarTela();
+            }, 1000);
+        }
+    } else if (comando === 'PAUSE') {
+        if (timer) {
+            clearInterval(timer);
+            timer = null;
+        }
+    } else if (comando === 'RESET') {
+        if (timer) {
+            clearInterval(timer);
+            timer = null;
+        }
+        segundos = 0;
+        atualizarTela();
     }
 });
 
