@@ -17,6 +17,7 @@ function atualizarTela() {
     }
 }
 
+// Escuta as mensagens enviadas pelo celular
 context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
     const comando = event.data; // Recebe "START", "PAUSE" ou "RESET"
 
@@ -44,3 +45,6 @@ context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
 
 const options = new cast.framework.CastReceiverOptions();
 context.start(options);
+
+// Garante a tela zerada no padrão 00:00 assim que o Web Receiver abre
+atualizarTela();
