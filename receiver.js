@@ -24,11 +24,11 @@ function logNaTV(mensagem) {
     }
 }
 
-// Escuta as mensagens enviadas pelo Android
+// Configura o ouvinte de mensagens customizadas
 context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
-    const comando = event.data; // Ex: "START", "PAUSE", "RESET"
+    // Pega o conteúdo da mensagem enviada pelo Android
+    const comando = event.data;
     
-    // Escreve na TV o comando que acabou de chegar do celular!
     logNaTV(`Recebido: "${comando}"`);
 
     if (comando === 'START') {
@@ -54,6 +54,12 @@ context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
 });
 
 const options = new cast.framework.CastReceiverOptions();
+
+// Define o formato da mensagem para aceitar texto simples no namespace
+options.customNamespaces = {};
+options.customNamespaces[CUSTOM_NAMESPACE] = cast.framework.system.MessageType.STRING;
+
+// Inicia o contexto do Receiver com as opções configuradas
 context.start(options);
 
 atualizarTela();
