@@ -69,12 +69,19 @@ function startEngine() {
 
 function handlePrepTick() {
     seconds--;
-    if (seconds <= 3 && seconds > 0) playBeep(440); // Bip Grave
+    if (seconds <= 3 && seconds > 0) playBeep(440);
     if (seconds <= 0) {
-        playBeep(880, 0.4); // Bip Agudo (GO!)
+        playBeep(880, 0.4);
         state = 'WORK';
         setVisualState('status-work', 'WORK');
-        seconds = (workoutType === 'EMOM') ? config.workTime : 0;
+        
+        if (workoutType === 'AMRAP') {
+            seconds = config.totalTime || 60;
+        } else if (workoutType === 'EMOM' || workoutType === 'TABATA') {
+            seconds = config.workTime || 60;
+        } else {
+            seconds = 0; // FOR TIME
+        }
     }
 }
 
