@@ -7,10 +7,11 @@ const elTimer = document.getElementById('timer-display');
 const elRound = document.getElementById('round-value');
 const elStatus = document.getElementById('status-value');
 
-// Estado Global do Treino
-let animationFrameId = null;
-let targetEndTime = 0;      // Timestamp exato em ms de quando o bloco atual deve terminar
-let lastDisplayedSecond = -1; // Para evitar repetição de bips no mesmo segundo
+// Estado do Timer
+let timerInterval = null;
+let startTime = 0;
+let durationMs = 0;
+let lastSecondLogged = -1;
 
 let currentRound = 1;
 let totalRounds = 1;
@@ -18,7 +19,7 @@ let workoutType = 'NONE';
 let state = 'STOPPED'; // PREP, WORK, REST, PAUSED, STOPPED
 let config = {};
 
-// Sintetizador de Áudio (Bip)
+// Sintetizador de Som
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playBeep(freq = 440, duration = 0.15) {
     try {
@@ -33,14 +34,14 @@ function playBeep(freq = 440, duration = 0.15) {
         osc.start();
         osc.stop(audioCtx.currentTime + duration);
     } catch (e) {
-        console.log("Erro ao tocar áudio:", e);
+        console.log("Erro de áudio:", e);
     }
 }
 
 function formatTime(sec) {
-    const totalSec = Math.max(0, sec);
-    const m = Math.floor(totalSec / 60);
-    const s = totalSec % 60;
+    const total = Math.max(0, sec);
+    const m = Math.floor(total / 60);
+    const s = total % 60;
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
@@ -49,41 +50,44 @@ function setVisualState(bodyClass, statusText) {
     elStatus.textContent = statusText;
 }
 
-function updateDisplay(secondsToShow) {
-    elTimer.textContent = formatTime(secondsToShow);
+function updateDisplay(sec) {
+    elTimer.textContent = formatTime(sec);
     elRound.textContent = totalRounds > 1 ? `${currentRound}/${totalRounds}` : `${currentRound}`;
 }
 
-// INICIA UM BLOCO COM BASE NO RELÓGIO ABSOLUTO
-function startBlock(durationSeconds) {
-    targetEndTime = Date.now() + (durationSeconds * 1000);
-    lastDisplayedSecond = -1;
-    runLoop();
-}
+// NOVO MOTOR: Intervalo fixo de 100ms que lê a precisão de alta performance
+function startBlock(seconds) {
+    if (timerInterval) clearInterval(timerInterval);
+    
+    durationMs = seconds * 1000;
+    startTime = performance.now();
+    lastSecondLogged = -1;
 
-// LOOP ULTRA RÁPIDO (Garante fluidez sem engasgar)
-function runLoop() {
-    if (state === 'PAUSED' || state === 'STOPPED') return;
+    // Roda a verificação a cada 100ms (10 vezes por segundo) para não pesar a CPU da TV
+    timerInterval = setInterval(() => {
+        if (state === 'PAUSED' || state === 'STOPPED') return;
 
-    const now = Date.now();
-    const remainingMs = targetEndTime - now;
-    const remainingSec = Math.ceil(remainingMs / 1000);
+        const elapsed = performance.now() - startTime;
+        const remainingMs = durationMs - elapsed;
+        // Trunca o tempo para o segundo exato sem arredondar pra cima
+        const currentSecond = Math.max(0, Math.floor((remainingMs + 999) / 1000));
 
-    // Toca bips de contagem regressiva (3, 2, 1...) sem repetir no mesmo segundo
-    if (remainingSec !== lastDisplayedSecond) {
-        lastDisplayedSecond = remainingSec;
-        if (remainingSec <= 3 && remainingSec > 0) {
-            playBeep(440, 0.15); // Bip curto
+        // Toca o bip apenas UMA vez por segundo
+        if (currentSecond !== lastSecondLogged) {
+            lastSecondLogged = currentSecond;
+            if (currentSecond <= 3 && currentSecond > 0 && state !== 'STOPPED') {
+                playBeep(440, 0.15);
+            }
         }
-    }
 
-    if (remainingMs <= 0) {
-        // Transição de Fase
-        handlePhaseCompletion();
-    } else {
-        updateDisplay(remainingSec);
-        animationFrameId = requestAnimationFrame(runLoop);
-    }
+        updateDisplay(currentSecond);
+
+        // Se o tempo acabou
+        if (remainingMs <= 0) {
+            clearInterval(timerInterval);
+            handlePhaseCompletion();
+        }
+    }, 100);
 }
 
 function handlePhaseCompletion() {
@@ -121,7 +125,7 @@ function nextRoundOrFinish() {
         currentRound++;
         state = 'WORK';
         setVisualState('status-work', 'WORK');
-        playBeep(880, 0.4); // GO!
+        playBeep(880, 0.4);
         startBlock(config.workTime || 60);
     } else {
         finishWorkout();
@@ -129,7 +133,7 @@ function nextRoundOrFinish() {
 }
 
 function finishWorkout() {
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    if (timerInterval) clearInterval(timerInterval);
     state = 'STOPPED';
     setVisualState('status-ready', 'FINALIZADO!');
     updateDisplay(0);
@@ -143,7 +147,7 @@ context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
         const action = data.action;
 
         if (action === 'START') {
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            if (timerInterval) clearInterval(timerInterval);
 
             workoutType = data.type || 'AMRAP';
             config = data.config || {};
@@ -152,18 +156,17 @@ context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
             totalRounds = config.totalRounds || 1;
             currentRound = 1;
 
-            // Inicia em modo PREP (5s de preparação)
             state = 'PREP';
             setVisualState('status-prep', 'PREPARE-SE');
-            startBlock(5);
+            startBlock(5); // 5s de PREP
 
         } else if (action === 'PAUSE') {
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            if (timerInterval) clearInterval(timerInterval);
             state = 'PAUSED';
             setVisualState('status-prep', 'PAUSADO');
 
         } else if (action === 'RESET') {
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            if (timerInterval) clearInterval(timerInterval);
             state = 'STOPPED';
             currentRound = 1;
             setVisualState('status-ready', 'PRONTO');
@@ -175,7 +178,7 @@ context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
             updateDisplay(0);
         }
     } catch (e) {
-        console.error("Erro ao processar JSON:", e);
+        console.error("Erro no Receiver:", e);
     }
 });
 
