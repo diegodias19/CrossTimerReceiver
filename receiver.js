@@ -8,15 +8,17 @@ const elRound = document.getElementById('round-value');
 const elStatus = document.getElementById('status-value');
 
 // Estado Global do Treino
-let timerInterval = null;
-let seconds = 0;
+let animationFrameId = null;
+let targetEndTime = 0;      // Timestamp exato em ms de quando o bloco atual deve terminar
+let lastDisplayedSecond = -1; // Para evitar repetição de bips no mesmo segundo
+
 let currentRound = 1;
 let totalRounds = 1;
 let workoutType = 'NONE';
 let state = 'STOPPED'; // PREP, WORK, REST, PAUSED, STOPPED
 let config = {};
 
-// SINTETIZADOR DE SOM (Sem precisar de arquivo MP3 external)
+// Sintetizador de Áudio (Bip)
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playBeep(freq = 440, duration = 0.15) {
     try {
@@ -31,13 +33,14 @@ function playBeep(freq = 440, duration = 0.15) {
         osc.start();
         osc.stop(audioCtx.currentTime + duration);
     } catch (e) {
-        console.log("Erro ao tocar som", e);
+        console.log("Erro ao tocar áudio:", e);
     }
 }
 
 function formatTime(sec) {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
+    const totalSec = Math.max(0, sec);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
@@ -46,76 +49,69 @@ function setVisualState(bodyClass, statusText) {
     elStatus.textContent = statusText;
 }
 
-function updateDisplay() {
-    elTimer.textContent = formatTime(seconds);
+function updateDisplay(secondsToShow) {
+    elTimer.textContent = formatTime(secondsToShow);
     elRound.textContent = totalRounds > 1 ? `${currentRound}/${totalRounds}` : `${currentRound}`;
 }
 
-// LÓGICA PRINCIPAL DO MOTOR DE TEMPO
-function startEngine() {
-    if (timerInterval) clearInterval(timerInterval);
-
-    timerInterval = setInterval(() => {
-        if (state === 'WORK') {
-            handleWorkTick();
-        } else if (state === 'REST') {
-            handleRestTick();
-        } else if (state === 'PREP') {
-            handlePrepTick();
-        }
-        updateDisplay();
-    }, 1000);
+// INICIA UM BLOCO COM BASE NO RELÓGIO ABSOLUTO
+function startBlock(durationSeconds) {
+    targetEndTime = Date.now() + (durationSeconds * 1000);
+    lastDisplayedSecond = -1;
+    runLoop();
 }
 
-function handlePrepTick() {
-    seconds--;
-    if (seconds <= 3 && seconds > 0) playBeep(440);
-    if (seconds <= 0) {
-        playBeep(880, 0.4);
-        state = 'WORK';
-        setVisualState('status-work', 'WORK');
-        
-        if (workoutType === 'AMRAP') {
-            seconds = config.totalTime || 60;
-        } else if (workoutType === 'EMOM' || workoutType === 'TABATA') {
-            seconds = config.workTime || 60;
-        } else {
-            seconds = 0; // FOR TIME
+// LOOP ULTRA RÁPIDO (Garante fluidez sem engasgar)
+function runLoop() {
+    if (state === 'PAUSED' || state === 'STOPPED') return;
+
+    const now = Date.now();
+    const remainingMs = targetEndTime - now;
+    const remainingSec = Math.ceil(remainingMs / 1000);
+
+    // Toca bips de contagem regressiva (3, 2, 1...) sem repetir no mesmo segundo
+    if (remainingSec !== lastDisplayedSecond) {
+        lastDisplayedSecond = remainingSec;
+        if (remainingSec <= 3 && remainingSec > 0) {
+            playBeep(440, 0.15); // Bip curto
         }
+    }
+
+    if (remainingMs <= 0) {
+        // Transição de Fase
+        handlePhaseCompletion();
+    } else {
+        updateDisplay(remainingSec);
+        animationFrameId = requestAnimationFrame(runLoop);
     }
 }
 
-function handleWorkTick() {
-    if (workoutType === 'AMRAP' || workoutType === 'FOR_TIME') {
-        if (workoutType === 'AMRAP') {
-            seconds--;
-            if (seconds <= 3 && seconds > 0) playBeep(440);
-            if (seconds <= 0) finishWorkout();
-        } else { // FOR TIME
-            seconds++;
-            if (config.timeCap && seconds >= config.timeCap) finishWorkout();
-        }
-    } else if (workoutType === 'EMOM' || workoutType === 'TABATA') {
-        seconds--;
-        if (seconds <= 3 && seconds > 0) playBeep(440);
-        
-        if (seconds <= 0) {
+function handlePhaseCompletion() {
+    if (state === 'PREP') {
+        playBeep(880, 0.4); // GO!
+        state = 'WORK';
+        setVisualState('status-work', 'WORK');
+
+        const duration = (workoutType === 'AMRAP') 
+            ? (config.totalTime || 60) 
+            : (config.workTime || 60);
+
+        startBlock(duration);
+
+    } else if (state === 'WORK') {
+        if (workoutType === 'AMRAP' || workoutType === 'FOR_TIME') {
+            finishWorkout();
+        } else if (workoutType === 'EMOM' || workoutType === 'TABATA') {
             if (config.restTime && config.restTime > 0) {
                 state = 'REST';
                 setVisualState('status-rest', 'REST');
-                seconds = config.restTime;
                 playBeep(600, 0.2);
+                startBlock(config.restTime);
             } else {
                 nextRoundOrFinish();
             }
         }
-    }
-}
-
-function handleRestTick() {
-    seconds--;
-    if (seconds <= 3 && seconds > 0) playBeep(440);
-    if (seconds <= 0) {
+    } else if (state === 'REST') {
         nextRoundOrFinish();
     }
 }
@@ -125,17 +121,18 @@ function nextRoundOrFinish() {
         currentRound++;
         state = 'WORK';
         setVisualState('status-work', 'WORK');
-        seconds = config.workTime;
-        playBeep(880, 0.4);
+        playBeep(880, 0.4); // GO!
+        startBlock(config.workTime || 60);
     } else {
         finishWorkout();
     }
 }
 
 function finishWorkout() {
-    clearInterval(timerInterval);
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
     state = 'STOPPED';
     setVisualState('status-ready', 'FINALIZADO!');
+    updateDisplay(0);
     playBeep(880, 0.8);
 }
 
@@ -146,6 +143,8 @@ context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
         const action = data.action;
 
         if (action === 'START') {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
             workoutType = data.type || 'AMRAP';
             config = data.config || {};
             
@@ -153,35 +152,35 @@ context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
             totalRounds = config.totalRounds || 1;
             currentRound = 1;
 
-            // Inicia em modo PREP (5 segundos de preparação)
+            // Inicia em modo PREP (5s de preparação)
             state = 'PREP';
-            seconds = 5;
             setVisualState('status-prep', 'PREPARE-SE');
-            updateDisplay();
-            startEngine();
+            startBlock(5);
 
         } else if (action === 'PAUSE') {
-            if (timerInterval) clearInterval(timerInterval);
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
             state = 'PAUSED';
             setVisualState('status-prep', 'PAUSADO');
 
         } else if (action === 'RESET') {
-            if (timerInterval) clearInterval(timerInterval);
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
             state = 'STOPPED';
-            seconds = 0;
             currentRound = 1;
             setVisualState('status-ready', 'PRONTO');
             elType.textContent = 'CROSSTIMER';
-            updateDisplay();
+            updateDisplay(0);
             
         } else if (action === 'ADD_ROUND') {
             currentRound++;
-            updateDisplay();
+            updateDisplay(0);
         }
     } catch (e) {
-        console.error("Erro ao ler JSON no Receiver:", e);
+        console.error("Erro ao processar JSON:", e);
     }
 });
 
 const options = new cast.framework.CastReceiverOptions();
 context.start(options);
+
+setVisualState('status-ready', 'PRONTO');
+updateDisplay(0);
