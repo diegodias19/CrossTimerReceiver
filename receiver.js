@@ -28,6 +28,8 @@ let workoutType = 'NONE';
 let state = 'STOPPED'; // PREP, WORK, REST, PAUSED, STOPPED
 let config = {};
 
+let lastRenderedSecond = -1;
+
 // Sintetizador de Som
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playBeep(freq = 440, duration = 0.15) {
@@ -70,17 +72,26 @@ function startBlock(seconds) {
     durationMs = seconds * 1000;
     startTime = performance.now();
     lastSecondLogged = -1;
+    lastRenderedSecond = -1;
 
-    // Roda a cada 50ms para garantir transição suave e sem atraso na virada de segundo
+    // Checa 5 vezes por segundo (suficiente para pegar a virada do segundo sem pesar na GPU)
     timerInterval = setInterval(() => {
         if (state === 'PAUSED' || state === 'STOPPED') return;
 
         const elapsed = performance.now() - startTime;
         const remainingMs = durationMs - elapsed;
         
-        // Trunca o tempo em segundos
-        const currentSecond = Math.max(0, Math.floor((remainingMs + 999) / 1000));
+        // Trunca para o segundo atual
+        const currentSecond = Math.max(0, Math.floor((remainingMs + 990) / 1000));
 
+        // PULO DO GATO: SÓ ATUALIZA A TELA SE O SEGUNDO MUDOU!
+        // Evita que a TV tente re-renderizar o mesmo número dezenas de vezes
+        if (currentSecond !== lastRenderedSecond) {
+            lastRenderedSecond = currentSecond;
+            updateDisplay(currentSecond);
+        }
+
+        // Toca o áudio do Bip
         if (currentSecond !== lastSecondLogged) {
             lastSecondLogged = currentSecond;
             if (currentSecond <= 3 && currentSecond > 0 && state !== 'STOPPED') {
@@ -88,13 +99,12 @@ function startBlock(seconds) {
             }
         }
 
-        updateDisplay(currentSecond);
-
+        // Fim do bloco
         if (remainingMs <= 0) {
             clearInterval(timerInterval);
             handlePhaseCompletion();
         }
-    }, 50);
+    }, 200);
 }
 
 function handlePhaseCompletion() {
