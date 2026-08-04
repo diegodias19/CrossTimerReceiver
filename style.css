@@ -5,7 +5,7 @@
 }
 
 body {
-    background-color: #0a0a0a; /* Preto Box */
+    background-color: #0a0a0a;
     color: #ffffff;
     font-family: 'Montserrat', sans-serif;
     height: 100vh;
@@ -14,25 +14,14 @@ body {
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    transition: background-color 0.5s ease, border-color 0.5s ease;
+    transition: background-color 0.5s ease;
 }
 
-/* ESTADOS DE TREINO (Ajustados no padrão Preto/Laranja) */
-body.status-ready { 
-    background-color: #0a0a0a; 
-} 
-
-body.status-prep { 
-    background-color: #1c1300; /* Preto com tom Amarelo/Âmbar */
-}  
-
-body.status-work { 
-    background-color: #270e00; /* Fundo bem escuro com o temporizador e detalhes em Laranja Neon */
-}  
-
-body.status-rest { 
-    background-color: #1f0505; /* Fundo tom de Descanso (Vermelho escuro) */
-}  
+/* ESTADOS DE TREINO */
+body.status-ready { background-color: #0a0a0a; } 
+body.status-prep { background-color: #1c1300; }  
+body.status-work { background-color: #270e00; }  
+body.status-rest { background-color: #1f0505; }  
 
 .container {
     display: flex;
@@ -43,18 +32,16 @@ body.status-rest {
     height: 92vh;
 }
 
-/* Título da Modalidade (EMOM, AMRAP, etc) */
 .workout-type {
     font-size: 5vw;
     font-weight: 900;
     letter-spacing: 0.25rem;
     text-transform: uppercase;
-    color: #FF6B00; /* Laranja da Marca */
+    color: #FF6B00;
     margin-bottom: -1vw;
     text-shadow: 0 0 20px rgba(255, 107, 0, 0.4);
 }
 
-/* Timer Gigante Digital */
 .timer-display {
     font-family: 'Roboto Mono', monospace;
     font-size: 26vw;
@@ -64,18 +51,16 @@ body.status-rest {
     text-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
 }
 
-/* Ajuste de cor do timer no WORK para destacar em Laranja */
 body.status-work .timer-display {
     color: #FF6B00;
     text-shadow: 0 0 30px rgba(255, 107, 0, 0.6);
 }
 
 body.status-rest .timer-display {
-    color: #EF4444; /* Vermelho no descanso */
+    color: #EF4444;
     text-shadow: 0 0 30px rgba(239, 68, 68, 0.6);
 }
 
-/* Cards Inferiores */
 .info-panel {
     display: flex;
     gap: 4vw;
@@ -94,10 +79,7 @@ body.status-rest .timer-display {
     box-shadow: 0 10px 25px rgba(0,0,0,0.5);
 }
 
-/* Borda Laranja no WORK */
-body.status-work .info-box {
-    border-color: #FF6B00;
-}
+body.status-work .info-box { border-color: #FF6B00; }
 
 .info-label {
     font-size: 1.4vw;
@@ -112,10 +94,37 @@ body.status-work .info-box {
     color: #ffffff;
 }
 
-body.status-work #status-value {
-    color: #FF6B00;
+body.status-work #status-value { color: #FF6B00; }
+body.status-rest #status-value { color: #EF4444; }
+
+/* PAINEL DE TESTE LOCAL NO PC */
+.local-controls {
+    position: fixed;
+    bottom: 20px;
+    display: flex;
+    gap: 10px;
+    background: rgba(20, 20, 20, 0.9);
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: 1px solid #333;
+    z-index: 9999;
 }
 
-body.status-rest #status-value {
-    color: #EF4444;
+.local-controls button {
+    background: #FF6B00;
+    color: #fff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.local-controls button.btn-danger {
+    background: #DC2626;
+}
+
+.local-controls button:hover {
+    opacity: 0.9;
 }
