@@ -8,7 +8,7 @@
     <!-- Google Cast SDK -->
     <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
 
-    <!-- Fonte estilo Relógio Digital (Roboto Mono) -->
+    <!-- Fontes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@700&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
@@ -18,13 +18,13 @@
 <body class="status-ready">
 
     <div class="container">
-        <!-- Nome da Modalidade (EMOM, AMRAP, TABATA) -->
+        <!-- Nome da Modalidade -->
         <div id="workout-type" class="workout-type">CROSSTIMER</div>
 
         <!-- Timer Gigante -->
         <div id="timer-display" class="timer-display">00:00</div>
 
-        <!-- Painel de Informações Secundárias (Rounds, Rest, etc) -->
+        <!-- Painel de Informações -->
         <div class="info-panel">
             <div id="round-info" class="info-box">
                 <span class="info-label">ROUND</span>
@@ -35,6 +35,14 @@
                 <span id="status-value" class="info-value">PRONTO</span>
             </div>
         </div>
+    </div>
+
+    <!-- PAINEL DE CONTROLE LOCAL (Para testar direto pelo PC) -->
+    <div id="local-controls" class="local-controls">
+        <button onclick="testarLocal('EMOM')">EMOM Teste</button>
+        <button onclick="testarLocal('AMRAP')">AMRAP Teste</button>
+        <button onclick="pausarLocal()">Pausar</button>
+        <button onclick="zerarLocal()" class="btn-danger">Zerar</button>
     </div>
 
     <script src="receiver.js"></script>
