@@ -1,4 +1,13 @@
-const context = cast.framework.CastReceiverContext.getInstance();
+// Inicialização condicional do Cast (para não quebrar se aberto fora do Chromecast)
+let context = null;
+try {
+    if (window.cast && cast.framework) {
+        context = cast.framework.CastReceiverContext.getInstance();
+    }
+} catch (e) {
+    console.log("Modo de teste local (fora do Chromecast)");
+}
+
 const CUSTOM_NAMESPACE = 'urn:x-cast:br.com.diego.crosstimer';
 
 // Elementos da Tela
@@ -55,7 +64,6 @@ function updateDisplay(sec) {
     elRound.textContent = totalRounds > 1 ? `${currentRound}/${totalRounds}` : `${currentRound}`;
 }
 
-// NOVO MOTOR: Intervalo fixo de 100ms que lê a precisão de alta performance
 function startBlock(seconds) {
     if (timerInterval) clearInterval(timerInterval);
     
@@ -63,16 +71,16 @@ function startBlock(seconds) {
     startTime = performance.now();
     lastSecondLogged = -1;
 
-    // Roda a verificação a cada 100ms (10 vezes por segundo) para não pesar a CPU da TV
+    // Roda a cada 50ms para garantir transição suave e sem atraso na virada de segundo
     timerInterval = setInterval(() => {
         if (state === 'PAUSED' || state === 'STOPPED') return;
 
         const elapsed = performance.now() - startTime;
         const remainingMs = durationMs - elapsed;
-        // Trunca o tempo para o segundo exato sem arredondar pra cima
+        
+        // Trunca o tempo em segundos
         const currentSecond = Math.max(0, Math.floor((remainingMs + 999) / 1000));
 
-        // Toca o bip apenas UMA vez por segundo
         if (currentSecond !== lastSecondLogged) {
             lastSecondLogged = currentSecond;
             if (currentSecond <= 3 && currentSecond > 0 && state !== 'STOPPED') {
@@ -82,17 +90,16 @@ function startBlock(seconds) {
 
         updateDisplay(currentSecond);
 
-        // Se o tempo acabou
         if (remainingMs <= 0) {
             clearInterval(timerInterval);
             handlePhaseCompletion();
         }
-    }, 100);
+    }, 50);
 }
 
 function handlePhaseCompletion() {
     if (state === 'PREP') {
-        playBeep(880, 0.4); // GO!
+        playBeep(880, 0.4);
         state = 'WORK';
         setVisualState('status-work', 'WORK');
 
@@ -140,50 +147,78 @@ function finishWorkout() {
     playBeep(880, 0.8);
 }
 
-// OUVINTE DE COMANDOS DA TV
-context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
-    try {
-        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        const action = data.action;
+// Lógica de Processamento de Comandos (Reutilizada pelo Cast e pelos Botões Locais)
+function processarComando(data) {
+    const action = data.action;
 
-        if (action === 'START') {
-            if (timerInterval) clearInterval(timerInterval);
+    if (action === 'START') {
+        if (timerInterval) clearInterval(timerInterval);
 
-            workoutType = data.type || 'AMRAP';
-            config = data.config || {};
-            
-            elType.textContent = workoutType.replace('_', ' ');
-            totalRounds = config.totalRounds || 1;
-            currentRound = 1;
+        workoutType = data.type || 'AMRAP';
+        config = data.config || {};
+        
+        elType.textContent = workoutType.replace('_', ' ');
+        totalRounds = config.totalRounds || 1;
+        currentRound = 1;
 
-            state = 'PREP';
-            setVisualState('status-prep', 'PREPARE-SE');
-            startBlock(5); // 5s de PREP
+        state = 'PREP';
+        setVisualState('status-prep', 'PREPARE-SE');
+        startBlock(5);
 
-        } else if (action === 'PAUSE') {
-            if (timerInterval) clearInterval(timerInterval);
-            state = 'PAUSED';
-            setVisualState('status-prep', 'PAUSADO');
+    } else if (action === 'PAUSE') {
+        if (timerInterval) clearInterval(timerInterval);
+        state = 'PAUSED';
+        setVisualState('status-prep', 'PAUSADO');
 
-        } else if (action === 'RESET') {
-            if (timerInterval) clearInterval(timerInterval);
-            state = 'STOPPED';
-            currentRound = 1;
-            setVisualState('status-ready', 'PRONTO');
-            elType.textContent = 'CROSSTIMER';
-            updateDisplay(0);
-            
-        } else if (action === 'ADD_ROUND') {
-            currentRound++;
-            updateDisplay(0);
-        }
-    } catch (e) {
-        console.error("Erro no Receiver:", e);
+    } else if (action === 'RESET') {
+        if (timerInterval) clearInterval(timerInterval);
+        state = 'STOPPED';
+        currentRound = 1;
+        setVisualState('status-ready', 'PRONTO');
+        elType.textContent = 'CROSSTIMER';
+        updateDisplay(0);
     }
-});
+}
 
-const options = new cast.framework.CastReceiverOptions();
-context.start(options);
+// FUNÇÕES DE TESTE LOCAL (Para uso pelo computador)
+function testarLocal(tipo) {
+    if (tipo === 'EMOM') {
+        processarComando({
+            action: 'START',
+            type: 'EMOM',
+            config: { workTime: 15, restTime: 5, totalRounds: 3 }
+        });
+    } else if (tipo === 'AMRAP') {
+        processarComando({
+            action: 'START',
+            type: 'AMRAP',
+            config: { totalTime: 30 }
+        });
+    }
+}
+
+function pausarLocal() {
+    processarComando({ action: 'PAUSE' });
+}
+
+function zerarLocal() {
+    processarComando({ action: 'RESET' });
+}
+
+// OUVINTE DO GOOGLE CAST
+if (context) {
+    context.addCustomMessageListener(CUSTOM_NAMESPACE, (event) => {
+        try {
+            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+            processarComando(data);
+        } catch (e) {
+            console.error("Erro no Receiver:", e);
+        }
+    });
+
+    const options = new cast.framework.CastReceiverOptions();
+    context.start(options);
+}
 
 setVisualState('status-ready', 'PRONTO');
 updateDisplay(0);
