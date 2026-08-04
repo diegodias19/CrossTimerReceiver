@@ -49,6 +49,11 @@ body.status-rest { background-color: #1f0505; }
     line-height: 0.85;
     color: #ffffff;
     text-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+    
+    /* OPU DE PERFORMANCE PARA SMART TV / CHROMECAST */
+    font-variant-numeric: tabular-nums; /* Largura fixa para cada dígito */
+    will-change: contents;              /* Avisa a GPU da TV para isolar esse elemento */
+    transform: translateZ(0);          /* Ativa aceleração de hardware 3D */
 }
 
 body.status-work .timer-display {
